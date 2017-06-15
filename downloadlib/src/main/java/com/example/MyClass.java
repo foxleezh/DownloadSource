@@ -9,8 +9,10 @@ import java.util.ArrayList;
 
 public class MyClass {
 
-    String path="http://androidxref.com/6.0.0_r1/xref/frameworks/base/core/java/android/view/";
+    String path="http://androidxref.com/6.0.0_r1/xref/frameworks/base/core/java/android/";
     String savePath="D:/download/";
+
+    ArrayList<String> allUrls=new ArrayList<>();
 
     public static void main(String[] args){
         new MyClass().run();
@@ -18,6 +20,8 @@ public class MyClass {
 
     void run(){
         download(path);
+        System.out.print(allUrls.toString());
+        System.out.print("总数量="+allUrls.size());
     }
 
     void download(String path){
@@ -43,25 +47,10 @@ public class MyClass {
                 if(element3.endsWith("/")) {
                     urlpaths.add(path+element3);
                 }else if(!"..".equals(element3)){
-                    urls.add(downpath+element3);
+                    allUrls.add(downpath+element3);
                 }
             }
         }
-
-        String s1,saveTemp;
-        String[] split1;
-        int split;
-        int index=0;
-        for (String url : urls) {
-            index++;
-            System.out.println("下载 "+url+" "+index+"/"+urls.size());
-            s1= DownloadUtil.sendGet(url, "");
-            split1 = url.split("raw/");
-            saveTemp=savePath+split1[1];
-            split = saveTemp.lastIndexOf("/");
-            FileUtil.write(saveTemp.substring(0,split),saveTemp.substring(split+1),s1);
-        }
-
 
         System.out.println("下载完毕");
 
@@ -71,5 +60,28 @@ public class MyClass {
             download(urlpath);
         }
     }
+
+    public void mutidownload(ArrayList<String> urls){
+        String s1,saveTemp,saveFilePath,saveFile;
+        String[] split1;
+        int split;
+        int index=0;
+        for (String url : urls) {
+            index++;
+            split1 = url.split("raw/");
+            saveTemp=savePath+split1[1];
+            split = saveTemp.lastIndexOf("/");
+            saveFilePath=saveTemp.substring(0,split);
+            saveFile=saveTemp.substring(split+1);
+            if(!FileUtil.exists(saveFilePath,saveFile)) {
+                System.out.println("下载 "+url+" "+index+"/"+urls.size());
+                s1 = DownloadUtil.sendGet(url, "");
+                FileUtil.write(saveFilePath, saveFile, s1);
+            }else {
+                System.out.println("已下载 "+url+" "+index+"/"+urls.size());
+            }
+        }
+    }
+
 
 }

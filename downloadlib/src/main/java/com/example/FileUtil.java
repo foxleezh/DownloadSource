@@ -41,4 +41,9 @@ public class FileUtil {
             }
         }
     }
+
+    public static boolean exists(String path,String filename){
+        File file=new File(path,filename);
+        return file.exists();
+    }
 }
