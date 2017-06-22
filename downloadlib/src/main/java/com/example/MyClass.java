@@ -9,25 +9,41 @@ import java.util.ArrayList;
 
 public class MyClass {
 
-    String path="http://androidxref.com/6.0.0_r1/xref/frameworks/base/core/java/android/";
-    String savePath="D:/download/";
+    String path="http://androidxref.com/6.0.0_r1/xref/frameworks/base/core/java/android/content/pm/";
+    public static String savePath="D:\\stock\\MyApplication\\app\\src\\main\\java\\";
+    public static String tempPath="D:\\temp\\";
 
-    ArrayList<String> allUrls=new ArrayList<>();
+    ArrayList<DownloadInfo> allUrls=new ArrayList<>();
+
+    public static long lasttime;
 
     public static void main(String[] args){
         new MyClass().run();
     }
 
     void run(){
+        System.out.println("开始下载");
+        lasttime=System.currentTimeMillis();
         download(path);
-        System.out.print(allUrls.toString());
-        System.out.print("总数量="+allUrls.size());
+        lasttime=System.currentTimeMillis();
+        System.out.println("总数量="+allUrls.size());
+        MultiDownload multiDownload=new MultiDownload(allUrls);
+        multiDownload.start();
     }
 
     void download(String path){
         String downpath=path.replace("/xref/","/raw/");
-        System.out.println("开始下载");
-        String s= DownloadUtil.sendGet(path, "");
+
+        String s="";
+//        if(path.endsWith("/")){
+        DownloadInfo info = DownloadUtil.getPathInfo(path);
+        if (!FileUtil.exists(info.filePath, info.fileName)) {
+            s = DownloadUtil.sendGet(path, "");
+            FileUtil.write(info.filePath, info.fileName, s);
+        } else {
+            s = FileUtil.read(info.filePath, info.fileName);
+        }
+//        }
 //        System.out.println(s);
 //        FileUtil.write("D:/download/frameworks/av/media/libmedia","Visualizer.cpp",s);
         ArrayList<String> urls=new ArrayList<>();
@@ -47,41 +63,19 @@ public class MyClass {
                 if(element3.endsWith("/")) {
                     urlpaths.add(path+element3);
                 }else if(!"..".equals(element3)){
-                    allUrls.add(downpath+element3);
+                    allUrls.add(DownloadUtil.getInfo(downpath+element3,allUrls.size()+1));
                 }
             }
         }
-
-        System.out.println("下载完毕");
-
-
         for (String urlpath : urlpaths) {
-            System.out.println("未下载成功 "+urlpath);
+            System.out.println("解析地址 "+urlpath);
             download(urlpath);
         }
+
+        System.out.println("解析地址耗时="+(System.currentTimeMillis()-lasttime));
+
     }
 
-    public void mutidownload(ArrayList<String> urls){
-        String s1,saveTemp,saveFilePath,saveFile;
-        String[] split1;
-        int split;
-        int index=0;
-        for (String url : urls) {
-            index++;
-            split1 = url.split("raw/");
-            saveTemp=savePath+split1[1];
-            split = saveTemp.lastIndexOf("/");
-            saveFilePath=saveTemp.substring(0,split);
-            saveFile=saveTemp.substring(split+1);
-            if(!FileUtil.exists(saveFilePath,saveFile)) {
-                System.out.println("下载 "+url+" "+index+"/"+urls.size());
-                s1 = DownloadUtil.sendGet(url, "");
-                FileUtil.write(saveFilePath, saveFile, s1);
-            }else {
-                System.out.println("已下载 "+url+" "+index+"/"+urls.size());
-            }
-        }
-    }
 
 
 }
