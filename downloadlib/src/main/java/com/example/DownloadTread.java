@@ -22,12 +22,12 @@ public class DownloadTread extends Thread {
     public void run() {
         super.run();
         while (!isfinish) {
-            DownloadInfo info=MultiDownload.getUrl();
-            if(info==null){
-                isfinish=true;
+            DownloadInfo info = MultiDownload.getUrl();
+            if (info == null) {
+                isfinish = true;
                 MultiDownload.aliveThread--;
-                if(MultiDownload.aliveThread==0) {
-                    System.out.println("已下载完毕 耗时="+(System.currentTimeMillis()-lasttime));
+                if (MultiDownload.aliveThread == 0) {
+                    System.out.println("已下载完毕 耗时=" + (System.currentTimeMillis() - lasttime));
                 }
                 return;
             }
@@ -48,6 +48,7 @@ public class DownloadTread extends Thread {
                             "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1;SV1)");
                     connection.setConnectTimeout(10 * 1000);
                     connection.setReadTimeout(20 * 1000);
+                    connection.setUseCaches(false);
                     // 建立实际的连接
                     connection.connect();
                     // 定义 BufferedReader输入流来读取URL的响应
@@ -55,7 +56,7 @@ public class DownloadTread extends Thread {
                             connection.getInputStream()));
                     String line;
                     while ((line = in.readLine()) != null) {
-                        result += (line+"\r\n");
+                        result += (line + "\r\n");
                     }
                 } catch (Exception e) {
                     System.out.println("发送GET请求出现异常！失败" + info.toString());
@@ -73,11 +74,17 @@ public class DownloadTread extends Thread {
                         e2.printStackTrace();
                     }
                 }
-                info.content=result;
-                if(info.fileName.endsWith("java")||info.fileName.endsWith("aidl")) {
+                info.content = result;
+                if (info.fileName.endsWith("java") || info.fileName.endsWith("aidl")) {
                     String name = info.fileName.substring(0, info.fileName.lastIndexOf("."));
-                    if (!result.contains(name)) {
+                    if (!result.contains("class "+name+" ")&&!result.contains("interface "+name+" ")&&!result.contains("enum "+name+" ")
+                            &&!result.contains("parcelable "+name)
+                            &&!result.contains("class "+name+"<")
+                            &&!result.contains("interface "+name+"<")
+                            &&!result.contains("class "+name+"\r\n")
+                            &&!result.contains("interface "+name+"\r\n")) {
                         MultiDownload.putInfo(info);
+                        System.out.println("下载出错" + info.toString());
                         return;
                     }
                 }
@@ -90,41 +97,46 @@ public class DownloadTread extends Thread {
     }
 
     public void write(DownloadInfo info) {
-        String path=info.filePath;
-        String filename=info.fileName;
+
+        if(info.fileName.endsWith("aidl")){
+            if(!info.content.contains("parcelable")) {
+                info.fileName = info.fileName.replaceAll(".aidl", ".java");
+            }
+            info.content=info.content.replace("interface","public interface");
+            info.content=info.content.replace("oneway public interface","public interface");
+        }
+        String path = info.filePath;
+        String filename = info.fileName;
         File filepath = new File(path);
         File file = new File(path, filename);
-        synchronized (file) {
-
-            if (!filepath.exists()) {
-                filepath.mkdirs();
-            }
-            if (file.exists()) {
-                file.delete();
-            }
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(file);
-                fos.write(info.content.getBytes("utf-8"));
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } finally {
-                if (fos != null) {
-                    try {
-                        fos.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        if (!filepath.exists()) {
+            filepath.mkdirs();
+        }
+        if (file.exists()) {
+            file.delete();
+        }
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+            fos.write(info.content.getBytes("utf-8"));
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-            MultiDownload.size++;
-            System.out.println("下载 " + info.url + " "+MultiDownload.size+ "/" + MultiDownload.Totalsize);
         }
+        MultiDownload.size++;
+        System.out.println("下载 " + info.url + " " + MultiDownload.size + "/" + MultiDownload.Totalsize);
     }
 }

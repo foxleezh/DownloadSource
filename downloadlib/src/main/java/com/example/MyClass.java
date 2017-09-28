@@ -2,14 +2,16 @@ package com.example;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class MyClass {
 
-    String path="http://androidxref.com/6.0.0_r1/xref/frameworks/base/core/java/android/content/pm/";
+    String path="http://basic.10jqka.com.cn/002011/operate.html";
     public static String savePath="D:\\stock\\MyApplication\\app\\src\\main\\java\\";
     public static String tempPath="D:\\temp\\";
 
@@ -24,15 +26,19 @@ public class MyClass {
     void run(){
         System.out.println("开始下载");
         lasttime=System.currentTimeMillis();
-        download(path);
-        lasttime=System.currentTimeMillis();
-        System.out.println("总数量="+allUrls.size());
-        MultiDownload multiDownload=new MultiDownload(allUrls);
-        multiDownload.start();
+        try {
+            download(path);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+//        lasttime=System.currentTimeMillis();
+//        System.out.println("总数量="+allUrls.size());
+//        MultiDownload multiDownload=new MultiDownload(allUrls);
+//        multiDownload.start();
     }
 
-    void download(String path){
-        String downpath=path.replace("/xref/","/raw/");
+    void download(String path) throws UnsupportedEncodingException {
+        String downpath=path;
 
         String s="";
 //        if(path.endsWith("/")){
@@ -46,36 +52,75 @@ public class MyClass {
 //        }
 //        System.out.println(s);
 //        FileUtil.write("D:/download/frameworks/av/media/libmedia","Visualizer.cpp",s);
-        ArrayList<String> urls=new ArrayList<>();
-        ArrayList<String> urlpaths=new ArrayList<>();
         Document doc = null;
         try {
             doc = Jsoup.parse(s);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Elements td = doc.getElementsByTag("tbody");
-        for (Element element : td) {
-            Elements trs=element.getElementsByTag("tr");
-            for (Element tr : trs) {
-                Element element2=tr.child(1);
-                String element3=element2.getElementsByAttribute("href").get(0).attributes().get("href");
-                if(element3.endsWith("/")) {
-                    urlpaths.add(path+element3);
-                }else if(!"..".equals(element3)){
-                    allUrls.add(DownloadUtil.getInfo(downpath+element3,allUrls.size()+1));
+
+        LinkedHashMap<String,String> map=getIndustry(doc);
+
+        for (Map.Entry<String,String> entry:map.entrySet()) {
+            System.out.println(entry.getKey()+"="+entry.getValue());
+        }
+    }
+
+    
+
+
+    LinkedHashMap<String,String> getSummary(Document doc){
+        LinkedHashMap<String,String> map=new LinkedHashMap<>();
+        Elements trs = doc.select("div[class=bd]").select("table[class=m_table]").select("tr");
+        Elements trs1 = doc.select("div[class=m_tab_content2]").select("table[class=m_table ggintro]").select("tr");
+        trs.addAll(trs1);
+        int i;
+        for ( i=0; i<trs.size(); i++){
+            Elements tds = trs.get(i).select("td");
+            for (int j=0; j<tds.size(); j++){
+                String txt = tds.get(j).text();
+                String[] split = txt.split("：");
+                if(split.length==2) {
+                    if(split[1].contains("展开 ▼收起")){
+                        map.put(split[0], split[1].split("展开 ▼收起")[0]);
+                    }else {
+                        map.put(split[0], split[1]);
+                    }
+                }else if(split.length==3){
+                    map.put(split[0], split[1]+split[2]);
                 }
             }
         }
-        for (String urlpath : urlpaths) {
-            System.out.println("解析地址 "+urlpath);
-            download(urlpath);
-        }
-
-        System.out.println("解析地址耗时="+(System.currentTimeMillis()-lasttime));
-
+        return map;
     }
 
 
-
+    LinkedHashMap<String,String> getIndustry(Document doc){
+        LinkedHashMap<String,String> map=new LinkedHashMap<>();
+        Elements trs = doc.select("div[class=m_tab_content]").select("table[class=m_table m_hl]").select("tbody");
+//        Elements trs1 = doc.select("div[class=m_tab_content2]").select("table[class=m_table ggintro]").select("tr");
+//        trs.addAll(trs1);
+        int i;
+        for ( i=0; i<trs.size(); i++){
+            String txt = trs.get(i).text();
+            if(txt.contains("按行业")||txt.contains("按产品")||txt.contains("按地区")){
+                Elements tds1 = trs.get(i).select("tr");
+                for (int j=0; j<tds1.size(); j++){
+                    String head = tds1.get(j).select("th").text();
+                    if(!head.equals("")) {
+                        map.put(head, head);
+                    }
+                    Elements tds2 = tds1.get(j).select("td");
+                    for (int k=0; k<3; k++){
+                        if(tds2.size()>k) {
+                            String txt1 = tds2.get(k).text();
+                            map.put(txt1, txt1);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        return map;
+    }
 }

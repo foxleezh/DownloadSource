@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Created by Administrator on 2016/10/12.
@@ -42,7 +43,7 @@ public class FileUtil {
             FileOutputStream fos = null;
             try {
                 fos = new FileOutputStream(file);
-                fos.write(content.getBytes("utf-8"));
+                fos.write(content.getBytes("GBK"));
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -58,7 +59,7 @@ public class FileUtil {
     }
 
 
-    public static String read(String path,String filename) {
+    public static String read(String path,String filename) throws UnsupportedEncodingException {
         File file=new File(path,filename);
         if(!file.exists()){
             return "";
@@ -86,7 +87,7 @@ public class FileUtil {
                 e.printStackTrace();
             }
         }
-        return new String(output.toByteArray());
+        return new String(output.toByteArray(),"GBK");
     }
 
     public static boolean exists(String path,String filename){
